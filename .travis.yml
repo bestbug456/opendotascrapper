@@ -1,0 +1,27 @@
+language: go
+sudo: true
+go:
+- '1.10'
+branches:
+  only:
+  - master
+before_install:
+- go get -t -v gopkg.in/mgo.v2/bson
+- go get -t -v gopkg.in/mgo.v2
+- go get -t -v github.com/aws/aws-lambda-go/lambda
+- go test -race
+script:
+- go build
+deploy:
+  provider: lambda
+  function_name: opendotascrapper
+  region: eu-central-1
+  runtime: go1.x
+  handler_name: opendotascrapper
+  publish: true 
+  zip: deploy.zip
+  role: $ROLE
+  access_key_id: $AWS_ACCESS_KEY_ID
+  secret_access_key: $AWS_SECRET_ACCESS_KEY
+before_deploy:
+   - zip -r deploy.zip opendotascrapper
