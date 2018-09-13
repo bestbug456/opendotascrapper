@@ -14,12 +14,16 @@ script:
 - go build
 deploy:
   provider: lambda
-  function_name: opendotascrapper
+  # Weird tweak to get a valid path to root-level executable.  AWS joins module_name & handler_name with a '.'
+  module_name: "./"
+  handler_name: /opendotascrapper
   region: eu-central-1
   runtime: go1.x
-  handler_name: opendotascrapper
+  function_name: opendotascrapper
   publish: true 
   zip: deploy.zip
+  timeout: 300
+  memory_size: 512
   role: $ROLE
   access_key_id: $AWS_ACCESS_KEY_ID
   secret_access_key: $AWS_SECRET_ACCESS_KEY

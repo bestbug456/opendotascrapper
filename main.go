@@ -136,10 +136,10 @@ func getLast100Matches() ([]string, error) {
 	return matchs, nil
 }
 
-func downloadMatchAndReturnResult(matchID string) (*MatchInfos, map[string]interface{}, error) {
+func downloadMatchAndReturnResult(matchID string) (int, error) {
 	resp, err := http.Get("https://api.opendota.com/api/matches/" + matchID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error while downloading data: %s\n", err.Error())
+		return 0, fmt.Errorf("error while downloading data: %s\n", err.Error())
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -148,19 +148,35 @@ func downloadMatchAndReturnResult(matchID string) (*MatchInfos, map[string]inter
 	rawResponse := make(map[string]interface{})
 	json.Unmarshal(body, &rawResponse)
 	var ris MatchInfos
+	var teamZeroIsRadian bool
 	for i := 0; i < len(codec.Draft_timings); i++ {
 		if codec.Draft_timings[i]["pick"] == true {
 			conv, ok := codec.Draft_timings[i]["hero_id"].(float64)
 			if !ok {
-				return nil, nil, fmt.Errorf("Can't convert hero id to int. %d", codec.Draft_timings[i]["hero_id"])
+				return 0, fmt.Errorf("Can't convert hero id to int. %d", codec.Draft_timings[i]["hero_id"])
 			}
 			ris.Picks = append(ris.Picks, int(conv))
+			var playerslot float64
+			if i == 6 {
+				playerslot = codec.Draft_timings[i]["player_slot"].(float64)
+			}
+			if i == 6 && playerslot < 5 {
+				teamZeroIsRadian = true
+			}
 		}
 	}
 
-	if codec.Radiant_win {
+	var teamzerowin bool
+	if teamZeroIsRadian {
+		teamzerowin = codec.Radiant_win
+	} else {
+		teamzerowin = !codec.Radiant_win
+	}
+
+	if !teamzerowin {
 		ris.Win = 1
 	}
+
 	ris.ID = matchID
-	return &ris, rawResponse, nil
+	return ris.Win, nil
 }
