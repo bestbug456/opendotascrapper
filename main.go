@@ -136,10 +136,10 @@ func getLast100Matches() ([]string, error) {
 	return matchs, nil
 }
 
-func downloadMatchAndReturnResult(matchID string) (int, error) {
+func downloadMatchAndReturnResult(matchID string) (*MatchInfos, map[string]interface{}, error) {
 	resp, err := http.Get("https://api.opendota.com/api/matches/" + matchID)
 	if err != nil {
-		return 0, fmt.Errorf("error while downloading data: %s\n", err.Error())
+		return nil, nil, fmt.Errorf("error while downloading data: %s\n", err.Error())
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -153,7 +153,7 @@ func downloadMatchAndReturnResult(matchID string) (int, error) {
 		if codec.Draft_timings[i]["pick"] == true {
 			conv, ok := codec.Draft_timings[i]["hero_id"].(float64)
 			if !ok {
-				return 0, fmt.Errorf("Can't convert hero id to int. %d", codec.Draft_timings[i]["hero_id"])
+				return nil, nil, fmt.Errorf("Can't convert hero id to int. %d", codec.Draft_timings[i]["hero_id"])
 			}
 			ris.Picks = append(ris.Picks, int(conv))
 			var playerslot float64
@@ -176,7 +176,6 @@ func downloadMatchAndReturnResult(matchID string) (int, error) {
 	if !teamzerowin {
 		ris.Win = 1
 	}
-
 	ris.ID = matchID
-	return ris.Win, nil
+	return &ris, rawResponse, nil
 }
