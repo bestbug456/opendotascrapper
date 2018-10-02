@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"gopkg.in/mgo.v2"
@@ -81,6 +82,8 @@ func HandleRequest(ctx context.Context, data interface{}) (string, error) {
 		if len(resp.Picks) != 0 {
 			s.DB("opendota-infos").C("matchs").Insert(resp)
 		}
+		// Don't flood opendota with too many request.
+		time.Sleep(1 * time.Second)
 	}
 
 	return "", nil
@@ -160,7 +163,8 @@ func downloadMatchAndReturnResult(matchID string) (*MatchInfos, map[string]inter
 			if i == 6 {
 				playerslot = codec.Draft_timings[i]["player_slot"].(float64)
 			}
-			if i == 6 && playerslot < 5 {
+			if i == 6 && playerslot < 5.0 {
+				fmt.Printf("setting teamZeroIsRadian to true\n")
 				teamZeroIsRadian = true
 			}
 		}
@@ -173,9 +177,10 @@ func downloadMatchAndReturnResult(matchID string) (*MatchInfos, map[string]inter
 		teamzerowin = !codec.Radiant_win
 	}
 
-	if !teamzerowin {
+	if teamzerowin == false {
 		ris.Win = 1
 	}
+
 	ris.ID = matchID
 	return &ris, rawResponse, nil
 }
